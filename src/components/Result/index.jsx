@@ -1,27 +1,43 @@
 import {useContext} from 'react'
 import {useNavigate} from 'react-router'
+import Cookies from 'js-cookie'
 import Logo from '../Logo'
 import EvaluationContext from '../../context/EvaluationContext'
 import './index.css'
 
+const formatTime = totalSeconds => {
+  const safeSeconds = Math.max(0, totalSeconds)
+  const hrs = Math.floor(safeSeconds / 3600)
+  const mins = Math.floor((safeSeconds % 3600) / 60)
+  const secs = safeSeconds % 60
+  const pad = num => String(num).padStart(2, '0')
+  return `${pad(hrs)}:${pad(mins)}:${pad(secs)}`
+}
+
 const Result = () => {
   const navigate = useNavigate()
-  const {score, timeTakenInSeconds, isTimeUp, setScore, setTimeTakenInSeconds} =
-    useContext(EvaluationContext)
+  const {
+    score,
+    timeTakenInSeconds,
+    isTimeUp,
+    setScore,
+    setTimeTakenInSeconds,
+    setIsTimeUp,
+  } = useContext(EvaluationContext)
 
   const onClickReAttempt = () => {
     setScore(0)
     setTimeTakenInSeconds(0)
+    setIsTimeUp(false)
     navigate('/assessment', {replace: true})
   }
 
-  const minutes = Math.floor(timeTakenInSeconds / 60)
-  const seconds = timeTakenInSeconds % 60
-  const hours = Math.floor(minutes / 60)
+  const onClickLogout = () => {
+    Cookies.remove('jwt_token')
+    navigate('/login', {replace: true})
+  }
 
-  const formattedTimeTaken = `${String(hours).padStart(2, '0')}:${String(
-    minutes % 60,
-  ).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+  const formattedTimeTaken = formatTime(timeTakenInSeconds)
 
   const renderTimeUpView = () => (
     <div className="result-card">
@@ -70,7 +86,12 @@ const Result = () => {
 
   return (
     <div className="result-bg">
-      <Logo />
+      <div className="nav">
+        <Logo />
+        <button type="button" onClick={onClickLogout}>
+          Logout
+        </button>
+      </div>
       <div className="result-container">
         {isTimeUp ? renderTimeUpView() : renderSubmitView()}
       </div>

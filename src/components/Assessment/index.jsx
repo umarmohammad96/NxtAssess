@@ -13,15 +13,22 @@ const apiStatusConstants = {
   failure: 'FAILURE',
 }
 
-const TOTAL_TIME = 600
+const TOTAL_TIME = 600 // 10 minutes, in seconds
+
+const formatTime = totalSeconds => {
+  const safeSeconds = Math.max(0, totalSeconds)
+  const hrs = Math.floor(safeSeconds / 3600)
+  const mins = Math.floor((safeSeconds % 3600) / 60)
+  const secs = safeSeconds % 60
+  const pad = num => String(num).padStart(2, '0')
+  return `${pad(hrs)}:${pad(mins)}:${pad(secs)}`
+}
 
 const Assessment = () => {
-  const [currentQuestionIndex, setNextQuestionIndex] = useState(0)
-  const [questionData, setQuestionData] = useState([])
-  const [marks, setMarks] = useState(0)
-  const [answered, setAnswered] = useState(0)
-  const [unAnswered, setUnAnswered] = useState(0)
-  const [selectedOption, setSelectedOption] = useState('')
+  const [questions, setQuestions] = useState([])
+  const [total, setTotal] = useState(0)
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
+  const [answers, setAnswers] = useState({})
   const [timerLeft, setTimerLeft] = useState(TOTAL_TIME)
   const [apiStatus, setApiStatus] = useState(apiStatusConstants.initial)
 
@@ -46,13 +53,16 @@ const Assessment = () => {
       const data = await response.json()
 
       if (response.ok) {
-        setQuestionData(data.questions)
-        setUnAnswered(data.questions.length)
+        setQuestions(data.questions)
+        setTotal(data.total)
+        setCurrentQuestionIndex(0)
+        setAnswers({})
+        setTimerLeft(TOTAL_TIME)
         setApiStatus(apiStatusConstants.success)
       } else {
         setApiStatus(apiStatusConstants.failure)
       }
-    } catch (error) {
+    } catch {
       setApiStatus(apiStatusConstants.failure)
     }
   }, [])
@@ -61,14 +71,63 @@ const Assessment = () => {
     getQuestions()
   }, [getQuestions])
 
+  const currentQuestion = questions[currentQuestionIndex]
+
+  // Auto-select the first option whenever a SINGLE_SELECT question is
+  // opened for the first time (question not yet answered).
+  useEffect(() => {
+    if (apiStatus !== apiStatusConstants.success) {
+      return
+    }
+
+    const question = questions[currentQuestionIndex]
+    if (!question || question.options_type !== 'SINGLE_SELECT') {
+      return
+    }
+
+    const firstOptionId = question.options?.[0]?.id
+    if (firstOptionId === undefined) {
+      return
+    }
+
+    setAnswers(prev => {
+      if (prev[question.id] !== undefined) {
+        return prev
+      }
+      return {...prev, [question.id]: firstOptionId}
+    })
+  }, [currentQuestionIndex, questions, apiStatus])
+
+  const calculateScore = useCallback(
+    () =>
+      questions.reduce((scoreAcc, question) => {
+        const selectedId = answers[question.id]
+        if (selectedId === undefined) {
+          return scoreAcc
+        }
+        const selectedOption = question.options.find(
+          option => option.id === selectedId,
+        )
+        return selectedOption?.is_correct === 'true' ? scoreAcc + 1 : scoreAcc
+      }, 0),
+    [questions, answers],
+  )
+
   const submitAssessment = useCallback(
     isTimeUp => {
-      setScore(marks)
+      setScore(calculateScore())
       setTimeTakenInSeconds(TOTAL_TIME - timerLeft)
       setIsTimeUp(isTimeUp)
-      navigate('/result', {replace: true})
+      navigate('/results', {replace: true})
     },
-    [marks, timerLeft, navigate, setScore, setTimeTakenInSeconds, setIsTimeUp],
+    [
+      calculateScore,
+      timerLeft,
+      navigate,
+      setScore,
+      setTimeTakenInSeconds,
+      setIsTimeUp,
+    ],
   )
 
   useEffect(() => {
@@ -106,161 +165,175 @@ const Assessment = () => {
     getQuestions()
   }
 
-  const currentQuestion = questionData[currentQuestionIndex]
   const optionsArray = currentQuestion?.options || []
   const type = currentQuestion?.options_type
 
-  const minutes = Math.floor(timerLeft / 60)
-  const seconds = timerLeft % 60
+  const answeredCount = Object.keys(answers).length
+  const unAnsweredCount = total - answeredCount
 
-  const formattedTime = `${String(minutes).padStart(2, '0')}:${String(
-    seconds,
-  ).padStart(2, '0')}`
-
-  const onSelectOption = item => {
-    setSelectedOption(item.id)
+  const onSelectOption = optionId => {
+    if (!currentQuestion) {
+      return
+    }
+    setAnswers(prev => ({...prev, [currentQuestion.id]: optionId}))
   }
 
   const onSelectDropdownOption = event => {
-    setSelectedOption(event.target.value)
+    onSelectOption(event.target.value)
+  }
+
+  const onClickQuestionNumber = index => {
+    setCurrentQuestionIndex(index)
   }
 
   const onClickNext = () => {
-    if (selectedOption === '') {
-      alert('Please select an option')
-      return
-    }
-
-    const selectedAnswer = optionsArray.find(item => item.id === selectedOption)
-
-    if (selectedAnswer?.is_correct === 'true') {
-      setMarks(prev => prev + 1)
-    }
-
-    setAnswered(prev => prev + 1)
-    setUnAnswered(prev => prev - 1)
-
-    if (currentQuestionIndex < questionData.length - 1) {
-      setNextQuestionIndex(prev => prev + 1)
-      setSelectedOption('')
-    }
+    setCurrentQuestionIndex(prev => Math.min(prev + 1, questions.length - 1))
   }
 
   const onSubmitTest = () => {
     submitAssessment(false)
   }
 
-  const renderOptionButtons = () => {
+  const renderQuestionNumbers = () => (
+    <ul className="box-container question-numbers-list">
+      {questions.map((question, index) => (
+        <li key={question.id} className="question-number-item">
+          <button
+            type="button"
+            className={
+              index === currentQuestionIndex
+                ? 'question-box current'
+                : 'question-box'
+            }
+            onClick={() => onClickQuestionNumber(index)}
+          >
+            {index + 1}
+          </button>
+        </li>
+      ))}
+    </ul>
+  )
+
+  const renderOptions = () => {
     if (type === 'DEFAULT') {
       return (
-        <div className="options-container">
+        <ul className="options-container options-list">
           {optionsArray.map(item => (
-            <button
-              type="button"
-              key={item.id}
-              className={
-                selectedOption === item.id
-                  ? 'option-button selected'
-                  : 'option-button'
-              }
-              onClick={() => onSelectOption(item)}
-            >
-              {item.text}
-            </button>
+            <li key={item.id} className="option-item">
+              <button
+                type="button"
+                className={
+                  answers[currentQuestion.id] === item.id
+                    ? 'option-button selected'
+                    : 'option-button'
+                }
+                onClick={() => onSelectOption(item.id)}
+              >
+                {item.text}
+              </button>
+            </li>
           ))}
-        </div>
+        </ul>
       )
     }
 
     if (type === 'IMAGE') {
       return (
-        <div className="image-options-container">
+        <ul className="image-options-container options-list">
           {optionsArray.map(item => (
-            <button
-              type="button"
-              key={item.id}
-              className={
-                selectedOption === item.id
-                  ? 'image-option selected'
-                  : 'image-option'
-              }
-              onClick={() => onSelectOption(item)}
-            >
-              <img src={item.image_url} alt={item.text} />
-            </button>
+            <li key={item.id} className="option-item">
+              <button
+                type="button"
+                className={
+                  answers[currentQuestion.id] === item.id
+                    ? 'image-option selected'
+                    : 'image-option'
+                }
+                onClick={() => onSelectOption(item.id)}
+              >
+                <img src={item.image_url} alt={item.text} />
+              </button>
+            </li>
           ))}
-        </div>
+        </ul>
       )
     }
 
     if (type === 'SINGLE_SELECT') {
+      const selectedValue =
+        answers[currentQuestion.id] ?? optionsArray[0]?.id ?? ''
+
       return (
-        <select
-          name="options"
-          value={selectedOption}
-          onChange={onSelectDropdownOption}
-          className="options-select"
-        >
-          {optionsArray.map(item => (
-            <option value={item.id} key={item.id}>
-              {item.text}
-            </option>
-          ))}
-        </select>
+        <>
+          <p className="single-select-note">
+            First option is selected by default
+          </p>
+          <select
+            name="options"
+            value={selectedValue}
+            onChange={onSelectDropdownOption}
+            className="options-select"
+          >
+            {optionsArray.map(item => (
+              <option value={item.id} key={item.id}>
+                {item.text}
+              </option>
+            ))}
+          </select>
+        </>
       )
     }
 
     return null
   }
 
+  const renderLoader = () => (
+    <div className="page">
+      <div className="nav">
+        <Logo />
+        <button type="button" onClick={onClickLogout}>
+          Logout
+        </button>
+      </div>
+      <div className="loader-container" data-testid="loader">
+        <div className="loader" />
+      </div>
+    </div>
+  )
+
   const renderAssessmentContent = () => (
     <div className="assess">
       <div className="question-section">
-        <h1>
-          {currentQuestionIndex + 1}.{currentQuestion?.question_text}
-        </h1>
+        <p className="question-text">{currentQuestion?.question_text}</p>
 
         <hr />
 
-        {renderOptionButtons()}
+        {renderOptions()}
 
-        <button type="button" className="next-button" onClick={onClickNext}>
-          Next Question
-        </button>
+        {currentQuestionIndex < questions.length - 1 && (
+          <button type="button" className="next-button" onClick={onClickNext}>
+            Next Question
+          </button>
+        )}
       </div>
 
       <div className="question-summary">
-        <h1 className="timer-heading">
-          Time Left
-          <span className="timer">{formattedTime}</span>
-        </h1>
+        <p className="timer-label">Time Left</p>
+        <p className="timer-value">{formatTime(timerLeft)}</p>
 
         <div className="answer-summary">
-          <span className="answered">{answered}</span>
-          <span>Answered Questions</span>
+          <p className="answered-count">{answeredCount}</p>
+          <p className="answer-summary-label">Answered Questions</p>
 
-          <span className="unanswered">{unAnswered}</span>
-          <span>Unanswered Questions</span>
+          <p className="unanswered-count">{unAnsweredCount}</p>
+          <p className="answer-summary-label">Unanswered Questions</p>
         </div>
 
         <hr />
 
-        <h1 className="questions-heading">Questions({questionData.length})</h1>
+        <h1 className="questions-heading">Questions ({total})</h1>
 
-        <div className="box-container">
-          {questionData.map((question, index) => (
-            <div
-              key={question.id}
-              className={
-                index === currentQuestionIndex
-                  ? 'question-box current'
-                  : 'question-box'
-              }
-            >
-              {index + 1}
-            </div>
-          ))}
-        </div>
+        {renderQuestionNumbers()}
 
         <button type="button" className="submit-button" onClick={onSubmitTest}>
           Submit Assessment
@@ -271,6 +344,10 @@ const Assessment = () => {
 
   if (apiStatus === apiStatusConstants.failure) {
     return <Failure onRetry={onClickRetry} onLogout={onClickLogout} />
+  }
+
+  if (apiStatus !== apiStatusConstants.success) {
+    return renderLoader()
   }
 
   return (

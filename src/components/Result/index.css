@@ -3,6 +3,32 @@
   background-color: #f1f5f9;
 }
 
+.result-bg .nav {
+  width: 100%;
+  height: 53px;
+  background-color: #293d70;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 21px 0 25px;
+}
+
+.result-bg .nav button {
+  width: 48px;
+  height: 22px;
+  background-color: transparent;
+  border: 1px solid #ffffff;
+  border-radius: 4px;
+  color: #ffffff;
+  font-size: 7px;
+  cursor: pointer;
+}
+
+.result-bg .nav button:hover {
+  background-color: #ffffff;
+  color: #293d70;
+}
+
 .result-container {
   display: flex;
   justify-content: center;

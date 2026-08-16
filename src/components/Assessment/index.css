@@ -106,6 +106,29 @@ body {
   color: #293d70;
 }
 
+.loader-container {
+  width: 100%;
+  min-height: calc(100vh - 63px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loader {
+  width: 50px;
+  height: 50px;
+  border: 5px solid #dbe5f2;
+  border-top-color: #17427f;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .assess {
   width: 100%;
   min-height: calc(100vh - 63px);
@@ -113,6 +136,14 @@ body {
   grid-template-columns: minmax(0, 1fr) 298px;
   gap: 23px;
   padding: 23px;
+}
+
+.question-text {
+  margin: 0;
+  color: #17427f;
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 700;
 }
 
 .question-section {
@@ -137,6 +168,19 @@ body {
   border: 0;
   border-top: 1px solid #e0e5eb;
   margin: 18px 0 16px;
+}
+
+.options-container,
+.image-options-container,
+.box-container {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.option-item,
+.question-number-item {
+  display: contents;
 }
 
 .options-container {
@@ -247,41 +291,47 @@ body {
   padding: 0 12px;
 }
 
-.timer-heading {
+.timer-label,
+.timer-value {
   width: calc(100% + 24px);
-  height: 38px;
   margin: 0 0 0 -12px;
-  padding: 0 17px;
+  padding: 6px 17px;
   background-color: #4c6190;
   color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   font-size: 13px;
   font-weight: 400;
 }
 
-.timer {
+.timer-value {
+  padding-top: 0;
   font-size: 17px;
   font-weight: 500;
 }
 
 .answer-summary {
-  height: 70px;
+  min-height: 70px;
   margin: 0 -12px;
-  padding: 0 12px;
+  padding: 10px 12px;
   border-bottom: 1px solid #e0e5eb;
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 7px;
   color: #60708c;
   font-size: 10px;
   font-weight: 400;
-  white-space: nowrap;
 }
 
-.answered,
-.unanswered {
+.answer-summary p {
+  margin: 0;
+}
+
+.answer-summary-label {
+  margin-right: 10px;
+}
+
+.answered-count,
+.unanswered-count {
   width: 25px;
   height: 25px;
   border-radius: 50%;
@@ -291,12 +341,12 @@ body {
   font-size: 11px;
 }
 
-.answered {
+.answered-count {
   background-color: #8153ad;
   color: #ffffff;
 }
 
-.unanswered {
+.unanswered-count {
   border: 1px solid #d4dce7;
   background-color: #ffffff;
   color: #66758c;
