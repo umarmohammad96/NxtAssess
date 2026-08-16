@@ -1,8 +1,19 @@
-import Logo from '../Logo'
-import {useState, useEffect} from 'react'
+import {useState, useEffect, useContext, useCallback} from 'react'
 import {useNavigate} from 'react-router'
 import Cookies from 'js-cookie'
+import Logo from '../Logo'
+import EvaluationContext from '../../context/EvaluationContext'
+import Failure from '../Failure'
 import './index.css'
+
+const apiStatusConstants = {
+  initial: 'INITIAL',
+  inProgress: 'IN_PROGRESS',
+  success: 'SUCCESS',
+  failure: 'FAILURE',
+}
+
+const TOTAL_TIME = 600
 
 const Assessment = () => {
   const [currentQuestionIndex, setNextQuestionIndex] = useState(0)
@@ -11,35 +22,60 @@ const Assessment = () => {
   const [answered, setAnswered] = useState(0)
   const [unAnswered, setUnAnswered] = useState(0)
   const [selectedOption, setSelectedOption] = useState('')
-  const [timerLeft, setTimerLeft] = useState(600)
+  const [timerLeft, setTimerLeft] = useState(TOTAL_TIME)
+  const [apiStatus, setApiStatus] = useState(apiStatusConstants.initial)
 
   const navigate = useNavigate()
+  const {setScore, setTimeTakenInSeconds, setIsTimeUp} =
+    useContext(EvaluationContext)
 
-  useEffect(() => {
-    const getResponse = async () => {
-      const jwtToken = Cookies.get('jwt_token')
-      const questionApiUrl = 'https://apis.ccbp.in/assess/questions'
+  const getQuestions = useCallback(async () => {
+    setApiStatus(apiStatusConstants.inProgress)
+    const jwtToken = Cookies.get('jwt_token')
+    const questionsApiUrl = 'https://apis.ccbp.in/assess/questions'
 
-      const options = {
-        headers: {
-          Authorization: `Bearer ${jwtToken}`,
-        },
-        method: 'GET',
-      }
+    const options = {
+      headers: {
+        Authorization: `Bearer ${jwtToken}`,
+      },
+      method: 'GET',
+    }
 
-      const response = await fetch(questionApiUrl, options)
+    try {
+      const response = await fetch(questionsApiUrl, options)
       const data = await response.json()
 
       if (response.ok) {
         setQuestionData(data.questions)
         setUnAnswered(data.questions.length)
+        setApiStatus(apiStatusConstants.success)
+      } else {
+        setApiStatus(apiStatusConstants.failure)
       }
+    } catch (error) {
+      setApiStatus(apiStatusConstants.failure)
     }
-
-    getResponse()
   }, [])
 
   useEffect(() => {
+    getQuestions()
+  }, [getQuestions])
+
+  const submitAssessment = useCallback(
+    isTimeUp => {
+      setScore(marks)
+      setTimeTakenInSeconds(TOTAL_TIME - timerLeft)
+      setIsTimeUp(isTimeUp)
+      navigate('/result', {replace: true})
+    },
+    [marks, timerLeft, navigate, setScore, setTimeTakenInSeconds, setIsTimeUp],
+  )
+
+  useEffect(() => {
+    if (apiStatus !== apiStatusConstants.success) {
+      return undefined
+    }
+
     const timerId = setInterval(() => {
       setTimerLeft(prev => {
         if (prev <= 1) {
@@ -52,10 +88,22 @@ const Assessment = () => {
     }, 1000)
 
     return () => clearInterval(timerId)
-  }, [])
+  }, [apiStatus])
+
+  useEffect(() => {
+    if (apiStatus === apiStatusConstants.success && timerLeft === 0) {
+      submitAssessment(true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timerLeft, apiStatus])
 
   const onClickLogout = () => {
+    Cookies.remove('jwt_token')
     navigate('/login', {replace: true})
+  }
+
+  const onClickRetry = () => {
+    getQuestions()
   }
 
   const currentQuestion = questionData[currentQuestionIndex]
@@ -95,15 +143,11 @@ const Assessment = () => {
     if (currentQuestionIndex < questionData.length - 1) {
       setNextQuestionIndex(prev => prev + 1)
       setSelectedOption('')
-    } else {
-      const finalMarks = marks + (selectedAnswer?.is_correct === 'true' ? 1 : 0)
-
-      console.log('Final Marks:', finalMarks)
     }
   }
 
   const onSubmitTest = () => {
-    navigate('/result', {replace: true})
+    submitAssessment(false)
   }
 
   const renderOptionButtons = () => {
@@ -169,6 +213,66 @@ const Assessment = () => {
     return null
   }
 
+  const renderAssessmentContent = () => (
+    <div className="assess">
+      <div className="question-section">
+        <h1>
+          {currentQuestionIndex + 1}.{currentQuestion?.question_text}
+        </h1>
+
+        <hr />
+
+        {renderOptionButtons()}
+
+        <button type="button" className="next-button" onClick={onClickNext}>
+          Next Question
+        </button>
+      </div>
+
+      <div className="question-summary">
+        <h1 className="timer-heading">
+          Time Left
+          <span className="timer">{formattedTime}</span>
+        </h1>
+
+        <div className="answer-summary">
+          <span className="answered">{answered}</span>
+          <span>Answered Questions</span>
+
+          <span className="unanswered">{unAnswered}</span>
+          <span>Unanswered Questions</span>
+        </div>
+
+        <hr />
+
+        <h1 className="questions-heading">Questions({questionData.length})</h1>
+
+        <div className="box-container">
+          {questionData.map((question, index) => (
+            <div
+              key={question.id}
+              className={
+                index === currentQuestionIndex
+                  ? 'question-box current'
+                  : 'question-box'
+              }
+            >
+              {index + 1}
+            </div>
+          ))}
+        </div>
+
+        <button type="button" className="submit-button" onClick={onSubmitTest}>
+          Submit Assessment
+        </button>
+      </div>
+    </div>
+  )
+
+  if (apiStatus === apiStatusConstants.failure) {
+    return <Failure onRetry={onClickRetry} onLogout={onClickLogout} />
+  }
+
   return (
     <div className="page">
       <div className="nav">
@@ -179,65 +283,7 @@ const Assessment = () => {
         </button>
       </div>
 
-      <div className="assess">
-        <div className="question-section">
-          <h1>
-            {currentQuestionIndex + 1}.{currentQuestion?.question_text}
-          </h1>
-
-          <hr />
-
-          {renderOptionButtons()}
-
-          <button type="button" className="next-button" onClick={onClickNext}>
-            Next Question
-          </button>
-        </div>
-
-        <div className="question-summary">
-          <h1 className="timer-heading">
-            Time Left
-            <span className="timer">{formattedTime}</span>
-          </h1>
-
-          <div className="answer-summary">
-            <span className="answered">{answered}</span>
-            <span>Answered Questions</span>
-
-            <span className="unanswered">{unAnswered}</span>
-            <span>Unanswered Questions</span>
-          </div>
-
-          <hr />
-
-          <h1 className="questions-heading">
-            Questions({questionData.length})
-          </h1>
-
-          <div className="box-container">
-            {questionData.map((question, index) => (
-              <div
-                key={question.id}
-                className={
-                  index === currentQuestionIndex
-                    ? 'question-box current'
-                    : 'question-box'
-                }
-              >
-                {index + 1}
-              </div>
-            ))}
-          </div>
-
-          <button
-            type="button"
-            className="submit-button"
-            onClick={onSubmitTest}
-          >
-            Submit Test
-          </button>
-        </div>
-      </div>
+      {renderAssessmentContent()}
     </div>
   )
 }

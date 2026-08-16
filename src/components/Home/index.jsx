@@ -1,7 +1,6 @@
-//  Write your code here
-import Logo from '../Logo'
-import {useNavigate} from 'react-router'
+import {Link, useNavigate} from 'react-router'
 import Cookies from 'js-cookie'
+import Logo from '../Logo'
 import './index.css'
 
 const Home = () => {
@@ -9,10 +8,6 @@ const Home = () => {
   const onClickLogout = () => {
     Cookies.remove('jwt_token')
     navigate('/login', {replace: true})
-  }
-
-  const onSubmit = () => {
-    navigate('/assessment', {replace: true})
   }
 
   return (
@@ -40,16 +35,16 @@ const Home = () => {
               <span>Marking Scheme:</span> Every Correct response, get 1 mark
             </li>
             <li>
-              All the progress will be lost, if you reload during assessment
+              All the progress will be lost, if you reload during the assessment
             </li>
           </ol>
-          <button type="button" onClick={onSubmit}>
-            Start Assessment
-          </button>
+          <Link to="/assessment" replace>
+            <button type="button">Start Assessment</button>
+          </Link>
         </div>
         <img
-          src="https://www.figma.com/design/9v8qt3eNxyBQrqYBfoaUVJ/NXT-Assess?node-id=1-565&t=xqzVAscUCfE7vmdd-4"
-          alt="image"
+          src="https://assets.ccbp.in/frontend/react-js/exams-sr/home-img.png"
+          alt="assessment"
         />
       </div>
     </div>

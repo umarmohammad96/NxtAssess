@@ -1,7 +1,6 @@
 import {useState} from 'react'
 import {Navigate, useNavigate} from 'react-router'
 import Cookies from 'js-cookie'
-import Logo from '../Logo'
 import './index.css'
 
 const LoginForm = () => {
@@ -23,7 +22,6 @@ const LoginForm = () => {
 
     const onSubmitSuccess = jwtToken => {
       Cookies.set('jwt_token', jwtToken, {expires: 30})
-
       navigate('/', {replace: true})
     }
 
@@ -36,16 +34,21 @@ const LoginForm = () => {
     const data = await response.json()
     if (response.ok === true) onSubmitSuccess(data.jwt_token)
     else onSubmitFailure(data.error_msg)
-
-    const jwtToken = Cookies.get('jwt_token')
-    if (jwtToken !== undefined) {
-      return <Navigate to="/" replace />
-    }
   }
+
+  const jwtToken = Cookies.get('jwt_token')
+  if (jwtToken !== undefined) {
+    return <Navigate to="/" replace />
+  }
+
   return (
     <div className="background">
-      <div className="card">
-        <Logo />
+      <div className="login-card">
+        <img
+          src="https://assets.ccbp.in/frontend/react-js/nxt-watch-login-logo-img.png"
+          alt="login website logo"
+          className="login-logo"
+        />
         <form onSubmit={submitForm}>
           <label htmlFor="username">UserName</label>
           <input

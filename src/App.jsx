@@ -1,17 +1,16 @@
 import {Routes, Route} from 'react-router'
 import LoginForm from './components/LoginForm'
-import {Navigate} from 'react-router'
 import Home from './components/Home'
-// import Header from './components/Header'
-// import NotFound from './components/NotFound'
+import NotFound from './components/NotFound'
 import Assessment from './components/Assessment'
-import './App.css'
-import ProtectedRoute from './components/ProtectedRoute'
 import Result from './components/Result'
+import ProtectedRoute from './components/ProtectedRoute'
+import EvaluationProvider from './context/EvaluationProvider'
+import './App.css'
 
 const App = () => {
   return (
-    <>
+    <EvaluationProvider>
       <Routes>
         <Route path="/login" element={<LoginForm />} />
         <Route
@@ -38,9 +37,9 @@ const App = () => {
             </ProtectedRoute>
           }
         />
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
-    </>
+    </EvaluationProvider>
   )
 }
 
