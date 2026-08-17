@@ -195,11 +195,11 @@ const Assessment = () => {
   }
 
   const renderQuestionNumbers = () => (
-    <ul className="box-container question-numbers-list">
+    <ul className='box-container question-numbers-list'>
       {questions.map((question, index) => (
-        <li key={question.id} className="question-number-item">
+        <li key={question.id} className='question-number-item'>
           <button
-            type="button"
+            type='button'
             className={
               index === currentQuestionIndex
                 ? 'question-box current'
@@ -217,11 +217,11 @@ const Assessment = () => {
   const renderOptions = () => {
     if (type === 'DEFAULT') {
       return (
-        <ul className="options-container options-list">
+        <ul className='options-container options-list'>
           {optionsArray.map(item => (
-            <li key={item.id} className="option-item">
+            <li key={item.id} className='option-item'>
               <button
-                type="button"
+                type='button'
                 className={
                   answers[currentQuestion.id] === item.id
                     ? 'option-button selected'
@@ -239,11 +239,11 @@ const Assessment = () => {
 
     if (type === 'IMAGE') {
       return (
-        <ul className="image-options-container options-list">
+        <ul className='image-options-container options-list'>
           {optionsArray.map(item => (
-            <li key={item.id} className="option-item">
+            <li key={item.id} className='option-item'>
               <button
-                type="button"
+                type='button'
                 className={
                   answers[currentQuestion.id] === item.id
                     ? 'image-option selected'
@@ -265,14 +265,14 @@ const Assessment = () => {
 
       return (
         <>
-          <p className="single-select-note">
+          <p className='single-select-note'>
             First option is selected by default
           </p>
           <select
-            name="options"
+            name='options'
             value={selectedValue}
             onChange={onSelectDropdownOption}
-            className="options-select"
+            className='options-select'
           >
             {optionsArray.map(item => (
               <option value={item.id} key={item.id}>
@@ -288,54 +288,54 @@ const Assessment = () => {
   }
 
   const renderLoader = () => (
-    <div className="page">
-      <div className="nav">
+    <div className='page'>
+      <div className='nav'>
         <Logo />
-        <button type="button" onClick={onClickLogout}>
+        <button type='button' onClick={onClickLogout}>
           Logout
         </button>
       </div>
-      <div className="loader-container" data-testid="loader">
-        <div className="loader" />
+      <div className='loader-container' data-testid='loader'>
+        <div className='loader' />
       </div>
     </div>
   )
 
   const renderAssessmentContent = () => (
-    <div className="assess">
-      <div className="question-section">
-        <p className="question-text">{currentQuestion?.question_text}</p>
+    <div className='assess'>
+      <div className='question-section'>
+        <p className='question-text'>{currentQuestion?.question_text}</p>
 
         <hr />
 
         {renderOptions()}
 
         {currentQuestionIndex < questions.length - 1 && (
-          <button type="button" className="next-button" onClick={onClickNext}>
+          <button type='button' className='next-button' onClick={onClickNext}>
             Next Question
           </button>
         )}
       </div>
 
-      <div className="question-summary">
-        <p className="timer-label">Time Left</p>
-        <p className="timer-value">{formatTime(timerLeft)}</p>
+      <div className='question-summary'>
+        <p className='timer-label'>Time Left</p>
+        <p className='timer-value'>{formatTime(timerLeft)}</p>
 
-        <div className="answer-summary">
-          <p className="answered-count">{answeredCount}</p>
-          <p className="answer-summary-label">Answered Questions</p>
+        <div className='answer-summary'>
+          <p className='answered-count'>{answeredCount}</p>
+          <p className='answer-summary-label'>Answered Questions</p>
 
-          <p className="unanswered-count">{unAnsweredCount}</p>
-          <p className="answer-summary-label">Unanswered Questions</p>
+          <p className='unanswered-count'>{unAnsweredCount}</p>
+          <p className='answer-summary-label'>Unanswered Questions</p>
         </div>
 
         <hr />
 
-        <h1 className="questions-heading">Questions ({total})</h1>
+        <h1 className='questions-heading'>Questions ({total})</h1>
 
         {renderQuestionNumbers()}
 
-        <button type="button" className="submit-button" onClick={onSubmitTest}>
+        <button type='button' className='submit-button' onClick={onSubmitTest}>
           Submit Assessment
         </button>
       </div>
@@ -351,11 +351,11 @@ const Assessment = () => {
   }
 
   return (
-    <div className="page">
-      <div className="nav">
+    <div className='page'>
+      <div className='nav'>
         <Logo />
 
-        <button type="button" onClick={onClickLogout}>
+        <button type='button' onClick={onClickLogout}>
           Logout
         </button>
       </div>
